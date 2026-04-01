@@ -155,7 +155,6 @@ export async function fetchCourses() {
         ...hc,
         name:               String(s.name || '').trim() || hc.name,
         cat:                (s.subject || '').toString().trim().toLowerCase() || hc.cat,
-        subject:            (s.subject || '').toString().trim().toLowerCase() || hc.cat,
         adhyayanProjectId:  String(s.adhyayanProjectId || '').trim() || hc.adhyayanProjectId || '',
         modules:            parseInt(s.totalModules) || hc.modules,
         totalModules:       parseInt(s.totalModules) || hc.modules,
@@ -251,13 +250,18 @@ export async function fetchProgress() {
 // --- MERGE: join teachers + assignments + progress + courses ---
 
 export function mergeData(teachers, assignments, progress, courses) {
+  // Build O(1) lookup maps
+  const teacherMap = new Map(teachers.map(t => [String(t.id), t]));
+  const courseMap = new Map(courses.map(c => [c.id, c]));
+  const progByTidCid = new Map(progress.map(p => [`${String(p.teacherId)}_${p.courseId}`, p]));
+  const progByAidCid = new Map(progress.filter(p => p.adhyayanUserId).map(p => [`${p.adhyayanUserId}_${p.courseId}`, p]));
+
   return assignments.map(a => {
-    const teacher = teachers.find(t => t.id === a.teacherId);
-    const course  = courses.find(c => c.id === a.courseId || c.courseId === a.courseId);
-    // Join progress: try teacherId first, fallback to adhyayanUserId
-    let prog = progress.find(p => p.teacherId === a.teacherId && p.courseId === a.courseId);
+    const teacher = teacherMap.get(String(a.teacherId));
+    const course  = courseMap.get(a.courseId);
+    let prog = progByTidCid.get(`${String(a.teacherId)}_${a.courseId}`);
     if (!prog && teacher?.adhyayanUserId) {
-      prog = progress.find(p => p.adhyayanUserId === teacher.adhyayanUserId && p.courseId === a.courseId);
+      prog = progByAidCid.get(`${teacher.adhyayanUserId}_${a.courseId}`);
     }
     return {
       ...a,

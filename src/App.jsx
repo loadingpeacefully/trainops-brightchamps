@@ -125,6 +125,12 @@ export default function App() {
         fetchAssignments(),
         fetchProgress()
       ]);
+      if (sheetTeachers.length === 0 && sheetAssigns.length === 0 && progressData.length === 0) {
+        console.warn('[sync] Pull returned no data — check network or sheet access');
+        setSyncStatus("idle");
+        setInitialLoadDone(true);
+        return;
+      }
       const pendingTeachers = teachers.filter(t => t._pending);
       const pendingAssigns  = assignments.filter(a => a._pending);
       setCourses(courseData);
@@ -133,7 +139,7 @@ export default function App() {
       setProgress(progressData);
       setLastSynced("Just now");
       setSyncStatus("done");
-      setInitialLoadDone(true);
+      if (sheetTeachers.length > 0) setInitialLoadDone(true);
     } catch (e) {
       console.error('[sync] Pull failed:', e);
       setSyncStatus("idle");

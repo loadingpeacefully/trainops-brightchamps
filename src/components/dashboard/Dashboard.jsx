@@ -1,34 +1,43 @@
+import { useMemo } from 'react';
 import { C, card } from '@data/theme';
 import { CATEGORIES } from '@data/courses';
 import Kpi from '@components/Kpi';
 import SectionHeader from '@components/SectionHeader';
 
 export default function Dashboard({teachers,assignments,courses,progress,onFilterTeachers}) {
-  const assignedTids=new Set(assignments.map(a=>String(a.teacherId)));
-  const inTraining=[...assignedTids].filter(tid=>{
-    const t=teachers.find(x=>String(x.id)===tid);
-    return progress.some(p=>String(p.teacherId)===tid||(t?.adhyayanUserId&&p.adhyayanUserId===t.adhyayanUserId))&&progress.some(p=>(String(p.teacherId)===tid||(t?.adhyayanUserId&&p.adhyayanUserId===t.adhyayanUserId))&&p.pct>0);
-  }).length;
-  const notStarted=[...assignedTids].filter(tid=>{
-    const t=teachers.find(x=>String(x.id)===tid);
-    const tp=progress.filter(p=>String(p.teacherId)===tid||(t?.adhyayanUserId&&p.adhyayanUserId===t.adhyayanUserId));
-    return tp.length===0||tp.every(p=>p.pct===0);
-  }).length;
-  const overdue=assignments.filter(a=>(a.completionStatus||a.status)!=="Completed"&&new Date(a.deadline)<new Date()).length;
-  const activeCourses=courses.filter(c=>c.status==="active").length;
-  const draftCourses=courses.filter(c=>c.status==="draft").length;
-  const totalAssigned=assignments.length;
-  const catSummary=Object.entries(CATEGORIES).map(([catId,cat])=>{
-    const catCourses=courses.filter(c=>c.cat===catId&&c.status==="active");
-    const catCourseIds=catCourses.map(c=>c.id);
-    const enrolled=assignments.filter(a=>catCourseIds.includes(a.courseId)).length;
-    const catProg=progress.filter(p=>{
-      const matchesAssign=assignments.some(a=>catCourseIds.includes(a.courseId)&&(String(a.teacherId)===String(p.teacherId)||(teachers.find(t=>String(t.id)===String(a.teacherId))?.adhyayanUserId&&p.adhyayanUserId===teachers.find(t=>String(t.id)===String(a.teacherId))?.adhyayanUserId)));
-      return matchesAssign&&p.pct>0;
+  const {inTraining,notStarted,overdue,activeCourses,draftCourses,totalAssigned,catSummary}=useMemo(()=>{
+    const teacherMap=new Map(teachers.map(t=>[String(t.id),t]));
+    const assignedTids=new Set(assignments.map(a=>String(a.teacherId)));
+    const inTraining=[...assignedTids].filter(tid=>{
+      const t=teacherMap.get(tid);
+      return progress.some(p=>(String(p.teacherId)===tid||(t?.adhyayanUserId&&p.adhyayanUserId===t.adhyayanUserId))&&p.pct>0);
+    }).length;
+    const notStarted=[...assignedTids].filter(tid=>{
+      const t=teacherMap.get(tid);
+      const tp=progress.filter(p=>String(p.teacherId)===tid||(t?.adhyayanUserId&&p.adhyayanUserId===t.adhyayanUserId));
+      return tp.length===0||tp.every(p=>p.pct===0);
+    }).length;
+    const overdue=assignments.filter(a=>(a.completionStatus||a.status)!=="Completed"&&new Date(a.deadline)<new Date()).length;
+    const activeCourses=courses.filter(c=>c.status==="active").length;
+    const draftCourses=courses.filter(c=>c.status==="draft").length;
+    const totalAssigned=assignments.length;
+    const catSummary=Object.entries(CATEGORIES).map(([catId,cat])=>{
+      const catCourses=courses.filter(c=>c.cat===catId&&c.status==="active");
+      const catCourseIds=new Set(catCourses.map(c=>c.id));
+      const enrolled=assignments.filter(a=>catCourseIds.has(a.courseId)).length;
+      const catAssignTids=new Set(assignments.filter(a=>catCourseIds.has(a.courseId)).map(a=>String(a.teacherId)));
+      const catProg=progress.filter(p=>{
+        const tid=String(p.teacherId);
+        if(catAssignTids.has(tid)) return p.pct>0;
+        const t=teacherMap.get(tid);
+        if(t?.adhyayanUserId&&p.adhyayanUserId===t.adhyayanUserId) return p.pct>0;
+        return false;
+      });
+      const avgComp=catProg.length?Math.round(catProg.reduce((s,p)=>s+p.pct,0)/catProg.length):0;
+      return{...cat,catId,count:catCourses.length,enrolled,avgComp};
     });
-    const avgComp=catProg.length?Math.round(catProg.reduce((s,p)=>s+p.pct,0)/catProg.length):0;
-    return{...cat,catId,count:catCourses.length,enrolled,avgComp};
-  });
+    return{inTraining,notStarted,overdue,activeCourses,draftCourses,totalAssigned,catSummary};
+  },[teachers,assignments,courses,progress]);
   return (
     <div>
       <SectionHeader title="Dashboard" sub={new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}/>
@@ -49,12 +58,14 @@ export default function Dashboard({teachers,assignments,courses,progress,onFilte
               <div style={{fontSize:10,fontWeight:700,color:cat.color,letterSpacing:".08em",textTransform:"uppercase",marginBottom:10}}>
                 {cat.label} · {cat.count}
               </div>
-              <div style={{fontSize:28,fontWeight:800,color:cat.color,lineHeight:1,marginBottom:4}}>{cat.avgComp}%</div>
-              <div style={{fontSize:11,color:cat.color,opacity:.65,marginBottom:10}}>avg completion</div>
-              <div style={{height:5,borderRadius:5,background:`${cat.color}22`,overflow:"hidden",marginBottom:8}}>
-                <div style={{height:"100%",width:`${cat.avgComp}%`,background:cat.color,borderRadius:5}}/>
-              </div>
-              <div style={{fontSize:11,color:C.text2}}>{cat.enrolled.toLocaleString()} assigned</div>
+              {cat.enrolled>0?<>
+                <div style={{fontSize:28,fontWeight:800,color:cat.color,lineHeight:1,marginBottom:4}}>{cat.avgComp}%</div>
+                <div style={{fontSize:11,color:cat.color,opacity:.65,marginBottom:10}}>avg completion</div>
+                <div style={{height:5,borderRadius:5,background:`${cat.color}22`,overflow:"hidden",marginBottom:8}}>
+                  <div style={{height:"100%",width:`${cat.avgComp}%`,background:cat.color,borderRadius:5}}/>
+                </div>
+                <div style={{fontSize:11,color:C.text2}}>{cat.enrolled.toLocaleString()} assigned</div>
+              </>:<div style={{fontSize:12,color:C.text3,paddingTop:8}}>No assignments yet</div>}
             </div>
           ))}
         </div>

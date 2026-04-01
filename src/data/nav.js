@@ -5,7 +5,7 @@ export const SHEETS = [
   {id:"progress",    icon:"📊", tab:"Progress",    writable:false},
 ];
 export const SHEET_FILE = "TrainOS_Data";
-export const LAST_PULL  = "Today, 10:42 AM";
+export const LAST_PULL  = "";
 export const VERTICALS = ['Codechamps','MathChamps','Finchamps','Robochamps'];
 export const NAV = [
   {id:"dashboard", label:"Dashboard", g:"◈"},

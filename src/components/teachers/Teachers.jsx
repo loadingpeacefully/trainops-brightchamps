@@ -73,7 +73,7 @@ export default function Teachers({teachers,assignments,courses,progress,setAssig
   const toggleOne=id=>setSel(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n;});
   const selRows=rows.filter(r=>sel.has(r.id));
 
-  const doRemind=rs=>{const names=rs.slice(0,2).map(r=>r.teacher.name.split(" ")[0]).join(", ");showToast(`⏳ ${names}${rs.length>2?` +${rs.length-2} more`:""} — email reminders coming soon`,"info");setSel(new Set());};
+  const doRemind=rs=>{showToast('Email reminders not yet configured — coming soon','info');setSel(new Set());};
   const saveDL=id=>{if(editVal){onUpdateDeadline(id,editVal);showToast("Deadline updated");}setEditDL(null);setEditVal("");};
 
   if(profile!==null){
@@ -231,7 +231,7 @@ export default function Teachers({teachers,assignments,courses,progress,setAssig
         <span style={{fontSize:11,color:C.text3,marginLeft:"auto"}}>{view==="assignments"?`${rows.length} result${rows.length!==1?"s":""}`:""}</span>
         {sel.size>0&&<div style={{width:"100%",display:"flex",alignItems:"center",gap:8,paddingTop:10,marginTop:2,borderTop:`1px solid ${C.border}`}}>
           <span style={{fontSize:12,color:C.text2,fontWeight:600}}>{sel.size} selected</span>
-          <button onClick={()=>doRemind(selRows)} style={{...btn(C.amberLo,C.amber,10),fontSize:11,padding:"5px 10px"}}>✉ Remind (soon) ({sel.size})</button>
+          <button onClick={()=>doRemind(selRows)} style={{...btn(C.amberLo,C.amber,10),fontSize:11,padding:"5px 10px"}}>Remind (soon) ({sel.size})</button>
           <button onClick={()=>setSel(new Set())} style={{...btn(C.surf2,C.text3,10),fontSize:11,padding:"5px 10px",border:`1px solid ${C.border}`}}>Clear</button>
         </div>}
       </div>
@@ -267,7 +267,7 @@ export default function Teachers({teachers,assignments,courses,progress,setAssig
                   <span onClick={e=>{e.stopPropagation();setEditDL(r.id);setEditVal(r.deadline);}} title="Click to edit" style={{fontSize:12,color:late?C.red:C.text2,cursor:"pointer",textDecoration:"underline dotted",textUnderlineOffset:3,paddingRight:16,whiteSpace:"nowrap"}}>{fmtS(r.deadline)}</span>
                 )}
                 <div style={{paddingRight:16}}><StatusTag status={displayStatus}/></div>
-                <div onClick={e=>e.stopPropagation()}>{(late||displayStatus==="Not Started")?<button onClick={()=>doRemind([r])} style={{...btn(late?C.redLo:C.amberLo,late?C.red:C.amber,10),padding:"5px 10px",fontSize:11}}>⏳ Remind</button>:<span style={{fontSize:12,color:C.text3}}>—</span>}</div>
+                <div onClick={e=>e.stopPropagation()}>{(late||displayStatus==="Not Started")?<button onClick={()=>doRemind([r])} style={{...btn(late?C.redLo:C.amberLo,late?C.red:C.amber,10),padding:"5px 10px",fontSize:11}}>Remind</button>:<span style={{fontSize:12,color:C.text3}}>—</span>}</div>
               </div>
             );
           })}

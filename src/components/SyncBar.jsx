@@ -14,7 +14,7 @@ export default function SyncBar({syncStatus,lastSynced,pendingT,pendingA,onPull,
         <div style={{minWidth:0}}>
           <div style={{fontSize:12,fontWeight:700,color:C.text}}>{SHEET_FILE}.xlsx</div>
           <div style={{fontSize:10,color:C.text3}}>
-            {busy?<span style={{color:C.brand}}>{syncStatus==="pulling"?"⟳ Pulling from sheet…":"⟳ Pushing changes…"}</span>:done?<span style={{color:C.green}}>✓ Synced just now</span>:`Last synced: ${lastSynced}`}
+            {busy?<span style={{color:C.brand}}>{syncStatus==="pulling"?"⟳ Pulling from sheet…":"⟳ Pushing changes…"}</span>:done?<span style={{color:C.green}}>✓ Synced just now</span>:lastSynced?`Last synced: ${lastSynced}`:"Not synced yet"}
           </div>
         </div>
       </div>
