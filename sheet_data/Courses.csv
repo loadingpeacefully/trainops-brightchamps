@@ -1,0 +1,14 @@
+courseId,name,subject,adhyayanProjectId,totalModules,status
+c1,Intro to Python,coding,01K9P93PN756QFC6KMMQTX31V5,14,active
+c2,Web Dev Basics,coding,,10,active
+c3,App Building with Scratch,coding,,8,active
+c4,Advanced Algorithms,coding,,12,active
+c5,Foundation Math Teaching,maths,,9,active
+c6,Demo Class Math Mastery,maths,,8,active
+c7,Math Problem Solving,maths,,6,active
+c8,Money Basics for Kids,finlit,,5,active
+c9,Investing & Entrepreneurship,finlit,,7,active
+c10,Intro to Robotics,robotics,,8,active
+c11,Arduino & Sensors,robotics,,11,active
+c12,Robotics Competition Prep,robotics,,6,active
+c13,AI & Machine Learning,coding,,10,draft
