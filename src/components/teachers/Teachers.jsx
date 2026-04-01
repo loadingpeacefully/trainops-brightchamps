@@ -111,7 +111,7 @@ export default function Teachers({teachers,assignments,courses,progress,setAssig
           {ta.map(a=>{
             const c=courses.find(x=>x.id===a.courseId);
             if(!c) return null;
-            const late=new Date(a.deadline)<new Date()&&a.status!=="Completed",hc=hColor(a.pct,a.status,a.deadline);
+            const ds=a.completionStatus||a.status||'Not Started',late=new Date(a.deadline)<new Date()&&ds!=="Completed",hc=hColor(a.pct,ds,a.deadline);
             return(
               <div key={a.id} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 20px",borderBottom:`1px solid ${C.border}`}}>
                 <div style={{width:38,height:38,borderRadius:10,background:C.brandLo,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{c.icon}</div>
@@ -125,7 +125,7 @@ export default function Teachers({teachers,assignments,courses,progress,setAssig
                   </div>
                   {a.kc1Score!=null&&a.kc1Score!=='Not Completed'?<div style={{fontSize:11,color:C.text2,marginTop:4}}>KC1: {a.kc1Score}/10 · KC2: {a.kc2Score}/10 · Avg: {a.avgScore}/10</div>:a.kc1Score==='Not Completed'?<div style={{fontSize:11,color:C.text3,marginTop:4}}>KC: Not taken yet</div>:null}
                 </div>
-                <StatusTag status={a.status}/>
+                <StatusTag status={a.completionStatus||a.status||'Not Started'}/>
               </div>
             );
           })}
