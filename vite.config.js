@@ -12,6 +12,9 @@ export default defineConfig({
       '@components': path.resolve(__dirname, './src/components'),
     }
   },
+  build: {
+    sourcemap: false
+  },
   server: {
     port: 5173,
     open: true
