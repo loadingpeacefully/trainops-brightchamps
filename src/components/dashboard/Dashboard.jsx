@@ -17,11 +17,16 @@ export default function Dashboard({teachers,assignments,courses,progress,onFilte
   const overdue=assignments.filter(a=>(a.completionStatus||a.status)!=="Completed"&&new Date(a.deadline)<new Date()).length;
   const activeCourses=courses.filter(c=>c.status==="active").length;
   const draftCourses=courses.filter(c=>c.status==="draft").length;
-  const totalEnrolled=courses.filter(c=>c.status==="active").reduce((s,c)=>s+c.enrolled,0);
+  const totalAssigned=assignments.length;
   const catSummary=Object.entries(CATEGORIES).map(([catId,cat])=>{
     const catCourses=courses.filter(c=>c.cat===catId&&c.status==="active");
-    const enrolled=catCourses.reduce((s,c)=>s+c.enrolled,0);
-    const avgComp=catCourses.length?+(catCourses.reduce((s,c)=>s+c.avg,0)/catCourses.length).toFixed(1):0;
+    const catCourseIds=catCourses.map(c=>c.id);
+    const enrolled=assignments.filter(a=>catCourseIds.includes(a.courseId)).length;
+    const catProg=progress.filter(p=>{
+      const matchesAssign=assignments.some(a=>catCourseIds.includes(a.courseId)&&(String(a.teacherId)===String(p.teacherId)||(teachers.find(t=>String(t.id)===String(a.teacherId))?.adhyayanUserId&&p.adhyayanUserId===teachers.find(t=>String(t.id)===String(a.teacherId))?.adhyayanUserId)));
+      return matchesAssign&&p.pct>0;
+    });
+    const avgComp=catProg.length?Math.round(catProg.reduce((s,p)=>s+p.pct,0)/catProg.length):0;
     return{...cat,catId,count:catCourses.length,enrolled,avgComp};
   });
   return (
@@ -36,7 +41,7 @@ export default function Dashboard({teachers,assignments,courses,progress,onFilte
       <div style={{...card,padding:"20px 22px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
           <div style={{fontSize:14,fontWeight:700,color:C.text}}>By Subject</div>
-          <div style={{fontSize:12,color:C.text3}}>{totalEnrolled.toLocaleString()} total enrolled</div>
+          <div style={{fontSize:12,color:C.text3}}>{totalAssigned.toLocaleString()} total assigned</div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
           {catSummary.map(cat=>(
@@ -49,7 +54,7 @@ export default function Dashboard({teachers,assignments,courses,progress,onFilte
               <div style={{height:5,borderRadius:5,background:`${cat.color}22`,overflow:"hidden",marginBottom:8}}>
                 <div style={{height:"100%",width:`${cat.avgComp}%`,background:cat.color,borderRadius:5}}/>
               </div>
-              <div style={{fontSize:11,color:C.text2}}>{cat.enrolled.toLocaleString()} enrolled</div>
+              <div style={{fontSize:11,color:C.text2}}>{cat.enrolled.toLocaleString()} assigned</div>
             </div>
           ))}
         </div>

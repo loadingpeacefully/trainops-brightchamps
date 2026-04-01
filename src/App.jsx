@@ -212,7 +212,7 @@ export default function App() {
       </div>
       <div style={{flex:1,padding:"24px 32px",overflowY:"auto",minHeight:"100vh"}}>
         <SyncBar syncStatus={syncStatus} lastSynced={lastSynced} pendingT={pendingT} pendingA={pendingA} onPull={handlePull} onPush={handlePush}/>
-        {!initialLoadDone&&syncStatus==='pulling'?(
+        {!initialLoadDone?(
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'60vh',flexDirection:'column',gap:16}}>
             <div style={{fontSize:32}}>🎓</div>
             <div style={{fontSize:14,color:C.text3}}>Loading TrainOS data...</div>
