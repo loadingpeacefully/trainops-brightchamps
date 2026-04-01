@@ -53,3 +53,7 @@ The status column used a.status (from assignment = "Not Started" always for new 
 - Don't join via teacher name. Names have casing/whitespace issues. Use teacherId where possible, email as fallback.
 - Don't bulk replace a prop name that shadows local variables in .map() callbacks. Check for self-referencing const declarations.
 - Don't assume strict === works across data sources. Sheet returns numbers, UI may pass strings. Always String() normalize IDs.
+- Don't use .find() inside .map() for large arrays. Use Map() lookups built once before the loop. mergeData went from O(n²) to O(n) with this change.
+- Don't ship with hardcoded "last synced" timestamps. Always derive sync state from actual operations. LAST_PULL was "Today, 10:42 AM" for months.
+- Don't use envelope icon (✉) on buttons that don't send. Icon implies action — only use when action is wired. The Remind button misled ops users.
+- Don't show "✓ Synced" without validating data arrived. Check array lengths after fetch before marking sync complete.
