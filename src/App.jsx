@@ -61,10 +61,18 @@ export default function App() {
   const [tFilter,setTFilter]         = useState(null);
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session:s}})=>{
-      setSession(s);
-      setAuthLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({data:{session:s}})=>{
+        setSession(s);
+        setAuthLoading(false);
+      })
+      .catch(err=>{
+        console.error('[auth] getSession failed:', err);
+        // Clear stale session so next visit doesn't loop on bad refresh token
+        try { localStorage.removeItem('sb-shdofgxhdtppedjoprfm-auth-token'); } catch {}
+        setSession(null);
+        setAuthLoading(false);
+      });
     const {data:{subscription}} = supabase.auth.onAuthStateChange((_event,s)=>{
       setSession(s);
     });
