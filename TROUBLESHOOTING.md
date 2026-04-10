@@ -4,21 +4,22 @@ Common issues and how to fix them. Read this before opening DevTools.
 
 ---
 
-## 1. Live site shows a blank page
+## 1. Live site shows a blank page (Supabase unreachable)
 
 **Symptoms:** https://trainops-brightchamps.pages.dev loads but you see only the background colour, no UI. DevTools Console shows `net::ERR_NAME_NOT_RESOLVED` for `*.supabase.co` or `TypeError: Failed to fetch` in a refresh-token loop.
 
-**Cause:** **Supabase free-tier project is paused.** Free projects auto-pause after ~7 days of inactivity. Once paused, the URL stops resolving in DNS. The app tries to refresh a stored session token, the request fails, and (until commit `3a8269d`) the auth flow hung forever.
+**Cause:** Supabase backend is unreachable. The Supabase project is on a paid plan so it does **not** auto-pause, but it could still be temporarily unavailable from a Supabase platform outage, accidental project deletion, or DNS/network issues.
+
+**Note:** Since commit `3a8269d` the app handles this gracefully — it falls back to the Login screen instead of hanging. So a "blank page that never resolves" should only happen if you're on an old cached bundle. Hard-refresh first.
 
 **Fix:**
 
-1. Log in to https://supabase.com/dashboard
-2. Open project `shdofgxhdtppedjoprfm`
-3. If status shows **"Paused"** → click **Restore project** (~1 min to wake)
+1. Hard-refresh the live site (Cmd+Shift+R) to make sure you have the latest bundle
+2. If still blank, log in to https://supabase.com/dashboard and open project `shdofgxhdtppedjoprfm`
+3. Confirm the project is **Active** (not paused, not deleted). On a paid plan it should always be active.
 4. Verify the URL responds: open `https://shdofgxhdtppedjoprfm.supabase.co` in a browser tab. You should see JSON like `{"message":"no Route matched..."}` (200 or 404, but **NOT** a DNS error)
-5. Hard-refresh the live site (Cmd+Shift+R)
-
-**Prevent:** Either upgrade Supabase to a paid plan (no auto-pause), or set up a weekly cron that pings the Supabase REST endpoint to keep it active. See [HANDOVER.md § 8](./HANDOVER.md#8-known-gaps-and-pending-work).
+5. Check https://status.supabase.com for any platform-wide incidents
+6. Once Supabase is reachable, hard-refresh the live site again
 
 ---
 

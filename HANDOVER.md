@@ -219,9 +219,6 @@ All 7 vars are in `.env` (gitignored locally) and configured in Cloudflare Pages
 
 ## 8. Known gaps and pending work
 
-### Operational risks (will bite if ignored)
-- **Supabase free-tier auto-pause** — The Supabase project pauses after ~7 days of inactivity. When paused, the URL stops resolving (`ERR_NAME_NOT_RESOLVED`) and the app falls back to the Login screen with no working backend. This already happened once on 2026-04-10 — the app now handles it gracefully (shows Login instead of hanging) but the underlying data is still inaccessible until someone restores the project from the Supabase dashboard. **Mitigation:** upgrade to a paid Supabase plan, OR set up a weekly cron that pings the Supabase REST endpoint to keep it warm. See [TROUBLESHOOTING.md § 1](./TROUBLESHOOTING.md#1-live-site-shows-a-blank-page).
-
 ### Pending (built but not yet wired)
 - **Apps Script writeback verification** — `writeAssignmentsToSheet` and `writeTeacherToSheet` use `mode: 'no-cors'` so success can't be confirmed. Sheet may silently fall behind Supabase. Owner: needs Apps Script redeploy with proper CORS headers, or accept Sheet as best-effort mirror.
 - **Recharts dead dependency** — Recharts is in `package.json` (~300 KB) but no file in `src/` imports it. Was used by the old Analytics module funnel which is now a Phase 2 placeholder. Safe to remove with `pnpm remove recharts`. Owner: post-handover cleanup.
@@ -305,7 +302,7 @@ This is a manual process. The Progress sheet tab is populated from Adhyayan via 
 
 TrainOS is a working admin tool for BrightChamps' teacher training program. The core flow (assign → track → identify overdue) is solid. Two known partial features need post-handover work: **email reminders** (button is honest about being unconfigured) and **module-level analytics** (placeholder until Metabase is wired).
 
-**The single biggest operational risk is Supabase free-tier auto-pause** — the backend goes silent after ~7 days of inactivity and someone has to manually restore it. The app now handles this gracefully on the frontend (added 2026-04-10 in `3a8269d`), but the only permanent fix is a paid Supabase plan or a keep-alive cron. See [TROUBLESHOOTING.md § 1](./TROUBLESHOOTING.md#1-live-site-shows-a-blank-page).
+The Supabase project is on a paid plan, so the backend stays available continuously. The frontend also has defensive handling for any backend outage (added 2026-04-10 in `3a8269d`) — if Supabase ever goes down, the app falls back to the Login screen instead of hanging on a stale session.
 
 The system has been deliberately designed to fail loudly rather than fake success. Pull validates data arrived. Push only clears pending state if Supabase confirms write. The "Reminder" button explicitly says "not yet configured" instead of pretending to send. These are intentional design choices documented in [DECISIONS.md](./DECISIONS.md) and [MEMORY.md](./MEMORY.md).
 
