@@ -1,9 +1,10 @@
 # TrainOS — Handover Document
 
-**Date:** 2026-04-10
+**Date:** 2026-04-10 (revised)
 **Status:** Live, in production use
 **Live URL:** https://trainops-brightchamps.pages.dev
 **Repo:** https://github.com/loadingpeacefully/trainops-brightchamps
+**Latest commit on `main`:** `3a8269d` — fix: graceful auth failure when Supabase is unreachable
 
 ---
 
@@ -38,6 +39,7 @@ TrainOS is an admin platform for managing teacher training at BrightChamps. Ops 
 | Pull button (manual refresh) | ✅ WORKS | Validates that data actually arrived before marking done |
 | Push button (manual sync) | ✅ WORKS | Only clears _pending if Supabase write succeeds |
 | Sheet writer (assignments → Google Sheet) | ⚠️ PARTIAL | no-cors POST, can't confirm success. Best-effort only. |
+| Auth resilience (Supabase outage handling) | ✅ WORKS | `getSession()` has `.catch()` — falls back to Login screen instead of hanging on a stale refresh token (added in `3a8269d`) |
 
 ---
 
@@ -90,11 +92,15 @@ The fallback is needed because Adhyayan has two account types:
 - `public/_redirects` — `/* /index.html 200` (SPA fallback for Cloudflare Pages)
 
 ### Documentation
+- `README.md` — public-facing project front page (linked from GitHub)
+- `HANDOVER.md` — this document
+- `TROUBLESHOOTING.md` — common issues with fixes (Supabase pause, blank screen, etc.)
 - `CLAUDE.md` — project guide for Claude Code sessions
 - `TASKS.md` — backlog and completed work tracker
 - `DECISIONS.md` — architecture decisions log
 - `MEMORY.md` — bugs fixed, anti-patterns to avoid
-- `HANDOVER.md` — this document
+- `LICENSE` — proprietary, BrightChamps internal use only
+- `.env.example` — template for the 7 required env vars (no values)
 - `audit/` — 6 historical audit reports (data wiring, QA test plan, brutal honest audit, etc.)
 
 ### src/
@@ -177,16 +183,15 @@ All 7 vars are in `.env` (gitignored locally) and configured in Cloudflare Pages
 ### Git repo
 
 - **URL:** https://github.com/loadingpeacefully/trainops-brightchamps
-- **What's in it:** 38 source files, 6 audit docs, 4 root MD files (CLAUDE/TASKS/DECISIONS/MEMORY), config (vite.config.js, package.json, .gitignore, .nvmrc, public/_redirects, index.html)
-- **What's NOT in it:** `.env` (secrets), `node_modules/`, `dist/` (build output), `_reference/` (old reference files), `sheet_data/` (CSV exports), `.DS_Store`
+- **What's in it:** 25 source files in `src/`, 6 audit docs, 7 root MD files (README, HANDOVER, TROUBLESHOOTING, CLAUDE, TASKS, DECISIONS, MEMORY), LICENSE, .env.example, config (vite.config.js, package.json, .gitignore, .nvmrc, public/_redirects, index.html)
+- **What's NOT in it:** `.env` (secrets — gitignored), `node_modules/`, `dist/` (build output), `.DS_Store`
 - **Run locally:**
   ```bash
-  pnpm install
-  cp .env.example .env  # then fill in real values
-  pnpm dev              # http://localhost:5173
+  pnpm install              # Node 20+ (.nvmrc)
+  cp .env.example .env      # then fill in real values from current owner
+  pnpm dev                  # http://localhost:5173
   ```
-  Note: there's no `.env.example` checked in — get current values from someone with access.
-- **Deploy:** Push to `main` branch → Cloudflare Pages auto-builds and deploys to `trainops-brightchamps.pages.dev`. Build command: `pnpm build`. Output dir: `dist/`.
+- **Deploy:** Push to `main` branch → Cloudflare Pages auto-builds and deploys to `trainops-brightchamps.pages.dev`. Build command: `pnpm build`. Output dir: `dist/`. Build time ~1-2 min.
 
 ### Accounts to transfer
 
@@ -214,9 +219,12 @@ All 7 vars are in `.env` (gitignored locally) and configured in Cloudflare Pages
 
 ## 8. Known gaps and pending work
 
+### Operational risks (will bite if ignored)
+- **Supabase free-tier auto-pause** — The Supabase project pauses after ~7 days of inactivity. When paused, the URL stops resolving (`ERR_NAME_NOT_RESOLVED`) and the app falls back to the Login screen with no working backend. This already happened once on 2026-04-10 — the app now handles it gracefully (shows Login instead of hanging) but the underlying data is still inaccessible until someone restores the project from the Supabase dashboard. **Mitigation:** upgrade to a paid Supabase plan, OR set up a weekly cron that pings the Supabase REST endpoint to keep it warm. See [TROUBLESHOOTING.md § 1](./TROUBLESHOOTING.md#1-live-site-shows-a-blank-page).
+
 ### Pending (built but not yet wired)
 - **Apps Script writeback verification** — `writeAssignmentsToSheet` and `writeTeacherToSheet` use `mode: 'no-cors'` so success can't be confirmed. Sheet may silently fall behind Supabase. Owner: needs Apps Script redeploy with proper CORS headers, or accept Sheet as best-effort mirror.
-- **Stale hardcoded course stats** — `src/data/courses.js` lines 14, 17-22 still have non-zero `enrolled`/`completed`/`avg` for c4, c7-c12 (e.g., c4 shows 634 enrolled). The honesty audit only zeroed c1, c2, c3, c5, c6, c13. Owner: zero remaining courses or derive all from real data.
+- **Recharts dead dependency** — Recharts is in `package.json` (~300 KB) but no file in `src/` imports it. Was used by the old Analytics module funnel which is now a Phase 2 placeholder. Safe to remove with `pnpm remove recharts`. Owner: post-handover cleanup.
 
 ### Blocked (waiting on tech team)
 - **244 teachers missing `adhyayanUserId`** — Will show 0% progress until tech team ensures all teachers get training links sent and sheet is backfilled. Owner: BrightChamps tech team.
@@ -227,7 +235,6 @@ All 7 vars are in `.env` (gitignored locally) and configured in Cloudflare Pages
 - **localStorage fallback for pending items** — If user refreshes before Push completes, pending items are lost. Owner: post-handover.
 - **Supabase RLS policies** — Currently the anon key has full read/write. Needs row-level security before scaling to more users. Owner: post-handover.
 - **Mobile responsive sidebar** — Desktop-first design. Sidebar doesn't collapse on small screens. Owner: post-handover.
-- **Code-split Analytics route** — Recharts is no longer imported (removed in honesty audit), so this is no longer needed.
 
 ---
 
@@ -296,8 +303,10 @@ This is a manual process. The Progress sheet tab is populated from Adhyayan via 
 
 ## Summary
 
-TrainOS is a working admin tool for BrightChamps' teacher training program. The core flow (assign → track → identify overdue) is solid. Two known partial features need post-handover work: **email reminders** (button is honest about being unconfigured) and **module-level analytics** (placeholder until Metabase is wired). The biggest pending architectural cleanup is the **stale hardcoded course stats** in `courses.js` lines 14, 17-22 — only 6 of 13 courses were zeroed in the honesty audit.
+TrainOS is a working admin tool for BrightChamps' teacher training program. The core flow (assign → track → identify overdue) is solid. Two known partial features need post-handover work: **email reminders** (button is honest about being unconfigured) and **module-level analytics** (placeholder until Metabase is wired).
 
-The system has been deliberately designed to fail loudly rather than fake success. Pull validates data arrived. Push only clears pending state if Supabase confirms write. The "Reminder" button explicitly says "not yet configured" instead of pretending to send. These are intentional design choices documented in DECISIONS.md and MEMORY.md.
+**The single biggest operational risk is Supabase free-tier auto-pause** — the backend goes silent after ~7 days of inactivity and someone has to manually restore it. The app now handles this gracefully on the frontend (added 2026-04-10 in `3a8269d`), but the only permanent fix is a paid Supabase plan or a keep-alive cron. See [TROUBLESHOOTING.md § 1](./TROUBLESHOOTING.md#1-live-site-shows-a-blank-page).
 
-For any handover questions, the audit folder (`/audit/*.md`) contains 6 historical reports showing every bug found and how it was fixed. Read those first if you encounter unexpected behavior.
+The system has been deliberately designed to fail loudly rather than fake success. Pull validates data arrived. Push only clears pending state if Supabase confirms write. The "Reminder" button explicitly says "not yet configured" instead of pretending to send. These are intentional design choices documented in [DECISIONS.md](./DECISIONS.md) and [MEMORY.md](./MEMORY.md).
+
+For any handover questions, read [README.md](./README.md) first, then [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for common issues. The `audit/` folder contains 6 historical reports showing every bug found during development and how each was fixed.
